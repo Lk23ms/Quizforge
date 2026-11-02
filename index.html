@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#0000FF" />
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';" />
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';" />
 <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 <title>QuizForge — Tạo & Làm bài kiểm tra</title>
 <style>
@@ -692,6 +692,133 @@
     .nav-actions .btn { padding: 8px 12px; font-size: 13px; }
     .logo span:last-child { display: none; }
   }
+
+  /* ============ MÁY TÍNH CASIO ============ */
+  .calc-fab {
+    position: fixed; bottom: 30px; right: 30px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #2d2d2d, #444);
+    color: #fff; font-size: 24px;
+    display: grid; place-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    cursor: pointer; z-index: 900;
+    transition: transform .3s var(--ease), box-shadow .3s;
+    border: 2px solid #555;
+  }
+  .calc-fab:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+  
+  #casioCalc {
+    position: fixed;
+    bottom: 30px; right: 100px;
+    width: 320px; height: 520px;
+    background: #1a1a1a;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    z-index: 999;
+    display: none;
+    flex-direction: column;
+    resize: both; overflow: hidden;
+    min-width: 280px; min-height: 420px;
+    border: 2px solid #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  #casioCalc.active { display: flex; }
+  
+  .calc-header {
+    background: #222;
+    color: #aaa;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: move;
+    user-select: none;
+    border-bottom: 1px solid #333;
+  }
+  .calc-header .close-btn { cursor: pointer; color: #ff5555; font-size: 16px; }
+  .calc-header .close-btn:hover { color: #ff0000; }
+  
+  .calc-body {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+  
+  .calc-screen {
+    background: #9cb59d; /* Màu màn hình Casio */
+    color: #000;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #7a917b;
+    overflow: hidden;
+  }
+  .calc-screen .expr {
+    font-size: 14px;
+    color: #333;
+    min-height: 20px;
+    white-space: nowrap;
+    overflow-x: auto;
+    word-break: break-all;
+  }
+  .calc-screen .result {
+    font-size: 22px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  
+  .calc-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    grid-auto-rows: minmax(32px, 1fr);
+  }
+  
+  .calc-btn {
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 0.1s, filter 0.1s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+    user-select: none;
+    padding: 4px;
+  }
+  .calc-btn:active { transform: scale(0.95); filter: brightness(0.9); }
+  
+  .calc-btn.num { background: #f0f0f0; color: #000; }
+  .calc-btn.op { background: #555; color: #fff; }
+  .calc-btn.fn { background: #333; color: #fff; font-size: 11px; }
+  .calc-btn.shift { background: #e6b800; color: #000; font-size: 11px; }
+  .calc-btn.alpha { background: #cc0000; color: #fff; font-size: 11px; }
+  .calc-btn.ac { background: #cc3333; color: #fff; }
+  .calc-btn.del { background: #cc6600; color: #fff; }
+  .calc-btn.eq { background: #0066cc; color: #fff; font-size: 16px; }
+  
+  .resize-handle {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 15px; height: 15px;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, #666 50%);
+  }
 </style>
 </head>
 <body>
@@ -720,6 +847,64 @@
 
 <main id="app"></main>
 <div id="modalRoot"></div>
+
+<!-- Máy tính Casio -->
+<div class="calc-fab" id="calcFab" title="Mở máy tính Casio">📟</div>
+<div id="casioCalc">
+  <div class="calc-header" id="calcDragHeader">
+    <span>CASIO fx-580VN X</span>
+    <span class="close-btn" id="calcClose">✕</span>
+  </div>
+  <div class="calc-body">
+    <div class="calc-screen">
+      <div class="expr" id="calcExpr"></div>
+      <div class="result" id="calcResult">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-btn shift" data-val="SHIFT">SHIFT</button>
+      <button class="calc-btn alpha" data-val="ALPHA">ALPHA</button>
+      <button class="calc-btn fn" data-val="(">(</button>
+      <button class="calc-btn fn" data-val=")">)</button>
+      <button class="calc-btn fn" data-val=",">,</button>
+      
+      <button class="calc-btn fn" data-val="sin(">sin</button>
+      <button class="calc-btn fn" data-val="cos(">cos</button>
+      <button class="calc-btn fn" data-val="tan(">tan</button>
+      <button class="calc-btn fn" data-val="log(">log</button>
+      <button class="calc-btn fn" data-val="ln(">ln</button>
+      
+      <button class="calc-btn fn" data-val="sqrt(">√</button>
+      <button class="calc-btn fn" data-val="^2">x²</button>
+      <button class="calc-btn fn" data-val="^">x^</button>
+      <button class="calc-btn fn" data-val="pi">π</button>
+      <button class="calc-btn fn" data-val="e">e</button>
+      
+      <button class="calc-btn num" data-val="7">7</button>
+      <button class="calc-btn num" data-val="8">8</button>
+      <button class="calc-btn num" data-val="9">9</button>
+      <button class="calc-btn del" data-val="DEL">DEL</button>
+      <button class="calc-btn ac" data-val="AC">AC</button>
+      
+      <button class="calc-btn num" data-val="4">4</button>
+      <button class="calc-btn num" data-val="5">5</button>
+      <button class="calc-btn num" data-val="6">6</button>
+      <button class="calc-btn op" data-val="*">×</button>
+      <button class="calc-btn op" data-val="/">÷</button>
+      
+      <button class="calc-btn num" data-val="1">1</button>
+      <button class="calc-btn num" data-val="2">2</button>
+      <button class="calc-btn num" data-val="3">3</button>
+      <button class="calc-btn op" data-val="+">+</button>
+      <button class="calc-btn op" data-val="-">-</button>
+      
+      <button class="calc-btn num" data-val="0">0</button>
+      <button class="calc-btn num" data-val=".">.</button>
+      <button class="calc-btn fn" data-val="%">%</button>
+      <button class="calc-btn eq" data-val="=" style="grid-column: span 2;">=</button>
+    </div>
+  </div>
+  <div class="resize-handle"></div>
+</div>
 
 <script>
 /* ============================================================
@@ -865,6 +1050,7 @@ const Security = {
 
   deterSourceView() {
     document.addEventListener('contextmenu', e => {
+      if (e.target.closest('#casioCalc')) return; // Cho phép chuột phải trong máy tính
       e.preventDefault();
       toast("⚠️ Chuột phải đã bị vô hiệu hoá vì lý do bảo mật.");
       return false;
@@ -895,7 +1081,6 @@ const Security = {
   }
 };
 
-// ĐÃ CẬP NHẬT PASSCODE ADMIN MỚI THEO YÊU CẦU
 const ADMIN_PASSCODE = "16112010Khoi@";
 
 /* ============================================================
@@ -1275,9 +1460,16 @@ function redoBuilder() { if (bIdx < bHistory.length - 1) { bIdx++; builder = JSO
 function newQuestion(type = "radio") {
   const q = { id: uid("q"), type, text: "", points: 1, required: false, explanation: "", correct: [] };
   if (type === "radio" || type === "checkbox") {
-    q.options = [{ id: uid("o"), text: "" }, { id: uid("o"), text: "" }];
+    q.options = [
+      { id: uid("o"), text: "A" },
+      { id: uid("o"), text: "B" },
+      { id: uid("o"), text: "C" },
+      { id: uid("o"), text: "D" }
+    ];
   } else if (type === "boolean") {
     q.options = [{ id: uid("o"), text: "Đúng" }, { id: uid("o"), text: "Sai" }];
+  } else if (type === "short") {
+    q.correct = "";
   } else {
     q.correct = "";
   }
@@ -1388,9 +1580,10 @@ function renderQuestionsList() {
 
 function renderQuestionCard(q, i) {
   const typeLabels = { 
-    radio: "Trắc nghiệm (1 đáp án)", 
+    radio: "Trắc nghiệm (A/B/C/D)", 
     checkbox: "Nhiều đáp án", 
     text: "Tự luận",
+    short: "Trả lời ngắn",
     boolean: "Đúng / Sai"
   };
   const typeOpts = Object.entries(typeLabels).map(([v, l]) =>
@@ -1570,9 +1763,9 @@ function renderCodeBuilder() {
 ## Mô tả ngắn
 
 Q1. 1 + 1 = ? [radio] [1 điểm]
-- 1
-- 2 (đúng)
-- 3
+- A. 1
+- B. 2 (đúng)
+- C. 3
 >> Giải thích: 1 + 1 = 2
 
 Q2. Mặt trời mọc ở hướng Tây. [boolean] [1 điểm]
@@ -1584,9 +1777,9 @@ Q3. Thủ đô VN? [text] [1 điểm]
 = Hà Nội
 >> Giải thích: Hà Nội là thủ đô của Việt Nam.</pre>
           <div style="margin-top:8px;font-size:12px;">
-            Dùng <code>[radio]</code>, <code>[checkbox]</code>, <code>[text]</code>, <code>[boolean]</code> cho loại câu;
+            Dùng <code>[radio]</code>, <code>[checkbox]</code>, <code>[text]</code>, <code>[boolean]</code>, <code>[short]</code> cho loại câu;
             <code>[N điểm]</code> cho điểm; <code>(đúng)</code> đánh dấu đáp án đúng;
-            <code>= answer</code> cho đáp án tự luận; <code># Tiêu đề</code> và <code>## Mô tả</code>; 
+            <code>= answer</code> cho đáp án tự luận / trả lời ngắn; <code># Tiêu đề</code> và <code>## Mô tả</code>; 
             <code>>> Giải thích: ...</code> cho phần giải thích.
           </div>
         </details>
@@ -1620,9 +1813,9 @@ Q3. Thủ đô VN? [text] [1 điểm]
 ## Nhập mô tả ở đây
 
 Q1. 1 + 1 bằng mấy? [radio] [1 điểm]
-- 1
-- 2 (đúng)
-- 3
+- A. 1
+- B. 2 (đúng)
+- C. 3
 >> Giải thích: 1 + 1 = 2
 
 Q2. Mặt trời mọc ở hướng Tây. [boolean] [1 điểm]
@@ -1631,12 +1824,12 @@ Q2. Mặt trời mọc ở hướng Tây. [boolean] [1 điểm]
 >> Giải thích: Mặt trời mọc ở hướng Đông.
 
 Q3. Số nào là số nguyên tố? [checkbox] [2 điểm]
-- 2 (đúng)
-- 3 (đúng)
-- 4
+- A. 2 (đúng)
+- B. 3 (đúng)
+- C. 4
 >> Giải thích: 2 và 3 là số nguyên tố.
 
-Q4. Thủ đô của Việt Nam là gì? [text] [1 điểm]
+Q4. Thủ đô của Việt Nam là gì? [short] [1 điểm]
 = Hà Nội
 >> Giải thích: Hà Nội là thủ đô của Việt Nam.`;
     toast("Đã chèn mẫu text");
@@ -1653,7 +1846,7 @@ function formToJSON(f) {
     shuffle: f.settings.shuffle,
     questions: f.questions.map(q => {
       const base = { type: q.type, text: q.text, points: q.points, required: q.required, explanation: q.explanation || "" };
-      if (q.type === "text") return { ...base, correct: q.correct || "" };
+      if (q.type === "text" || q.type === "short") return { ...base, correct: q.correct || "" };
       const correctIdx = q.options.map((o, i) => q.correct.includes(o.id) ? i : -1).filter(i => i >= 0);
       return { ...base, options: q.options.map(o => o.text), correct: correctIdx };
     }),
@@ -1690,7 +1883,7 @@ function validateQuizJSON(data) {
   if (Array.isArray(data.questions)) {
     data.questions.slice(0, 200).forEach(q => {
       if (!q || typeof q !== "object") return;
-      const type = ["radio", "checkbox", "text", "boolean"].includes(q.type) ? q.type : "radio";
+      const type = ["radio", "checkbox", "text", "boolean", "short"].includes(q.type) ? q.type : "radio";
       const qq = {
         id: uid("q"),
         type,
@@ -1698,9 +1891,9 @@ function validateQuizJSON(data) {
         points: Math.max(0, Math.min(100, Number(q.points) || 1)),
         required: !!q.required,
         explanation: String(q.explanation || "").slice(0, 1000),
-        correct: type === "text" ? String(q.correct || "").slice(0, 500) : [],
+        correct: (type === "text" || type === "short") ? String(q.correct || "").slice(0, 500) : [],
       };
-      if (type !== "text") {
+      if (type !== "text" && type !== "short") {
         if (type === "boolean") {
           qq.options = [{ id: uid("o"), text: "Đúng" }, { id: uid("o"), text: "Sai" }];
           const correctIdx = Array.isArray(q.correct) ? q.correct : [];
@@ -1708,7 +1901,7 @@ function validateQuizJSON(data) {
         } else {
           const opts = Array.isArray(q.options) ? q.options.slice(0, 20) : [];
           qq.options = opts.length ? opts.map(t => ({ id: uid("o"), text: String(t ?? "").slice(0, 500) }))
-                                    : [{ id: uid("o"), text: "" }, { id: uid("o"), text: "" }];
+                                    : [{ id: uid("o"), text: "A" }, { id: uid("o"), text: "B" }, { id: uid("o"), text: "C" }, { id: uid("o"), text: "D" }];
           const correctIdx = Array.isArray(q.correct) ? q.correct : [];
           qq.correct = correctIdx.filter(i => Number.isInteger(i) && i >= 0 && i < qq.options.length)
                                   .map(i => qq.options[i].id);
@@ -1747,7 +1940,7 @@ function parseTextFormat(code) {
       let text = qm[1].trim();
       let type = "radio", points = 1, required = false;
 
-      const tm = text.match(/\[(radio|checkbox|text|boolean)\]/i);
+      const tm = text.match(/\[(radio|checkbox|text|boolean|short)\]/i);
       if (tm) { type = tm[1].toLowerCase(); text = text.replace(tm[0], "").trim(); }
       const pm = text.match(/\[(\d+(?:\.\d+)?)\s*(?:điểm|diem|point|pts?)?\]/i);
       if (pm) { points = Math.max(0, Math.min(100, parseFloat(pm[1]))); text = text.replace(pm[0], "").trim(); }
@@ -1757,8 +1950,8 @@ function parseTextFormat(code) {
 
       current = {
         id: uid("q"), type, text, points, required, explanation: "",
-        correct: type === "text" ? "" : [],
-        ...(type === "text" ? {} : { options: [] }),
+        correct: (type === "text" || type === "short") ? "" : [],
+        ...((type === "text" || type === "short") ? {} : { options: [] }),
       };
 
       if (type === "boolean") {
@@ -1767,7 +1960,7 @@ function parseTextFormat(code) {
       continue;
     }
 
-    if (current && current.type !== "text" && /^[-*]/.test(line)) {
+    if (current && current.type !== "text" && current.type !== "short" && /^[-*]/.test(line)) {
       let optText = line.slice(1).trim();
       let isCorrect = false;
       if (/\((?:đúng|dung|correct|x)\)/i.test(optText)) {
@@ -1787,7 +1980,7 @@ function parseTextFormat(code) {
       continue;
     }
 
-    if (current && current.type === "text" && line.startsWith("=")) {
+    if (current && (current.type === "text" || current.type === "short") && line.startsWith("=")) {
       current.correct = line.slice(1).trim().slice(0, 500);
       continue;
     }
@@ -1795,8 +1988,8 @@ function parseTextFormat(code) {
   if (current) quiz.questions.push(current);
 
   quiz.questions.forEach(q => {
-    if (q.type !== "text" && q.type !== "boolean" && q.options.length === 0) {
-      q.options = [{ id: uid("o"), text: "" }, { id: uid("o"), text: "" }];
+    if (q.type !== "text" && q.type !== "short" && q.type !== "boolean" && q.options.length === 0) {
+      q.options = [{ id: uid("o"), text: "A" }, { id: uid("o"), text: "B" }, { id: uid("o"), text: "C" }, { id: uid("o"), text: "D" }];
     }
     if ((q.type === "radio" || q.type === "boolean") && q.correct.length > 1) q.correct = q.correct.slice(0, 1);
   });
@@ -1944,6 +2137,9 @@ function renderTestRunner() {
     </div>
   `;
 
+  // Hiển thị nút máy tính khi làm bài
+  $("#calcFab").style.display = "grid";
+
   $("#testForm").addEventListener("submit", e => {
     e.preventDefault();
     submitTest();
@@ -2002,8 +2198,8 @@ function renderQuestionForTest(q, i) {
   const sub = `${q.points} điểm${q.required ? ' · <span class="req">Bắt buộc</span>' : ""}`;
   let answersHtml = "";
 
-  if (q.type === "text") {
-    answersHtml = `<textarea class="answer-text" data-qid="${esc(q.id)}" placeholder="Nhập câu trả lời..." rows="3" maxlength="2000"></textarea>`;
+  if (q.type === "text" || q.type === "short") {
+    answersHtml = `<textarea class="answer-text" data-qid="${esc(q.id)}" placeholder="Nhập câu trả lời..." rows="2" maxlength="2000"></textarea>`;
   } else {
     answersHtml = `<div class="answer-list">
       ${q.options.map(o => `
@@ -2036,7 +2232,7 @@ function submitTest() {
     total += q.points || 0;
     const ans = answers[q.id];
     let correct = false;
-    if (q.type === "text") {
+    if (q.type === "text" || q.type === "short") {
       const given = String(ans || "").trim().toLowerCase();
       const expected = String(q.correct || "").trim().toLowerCase();
       correct = given && given === expected;
@@ -2076,6 +2272,10 @@ function submitTest() {
    RESULTS
 ============================================================ */
 function renderResults() {
+  // Ẩn nút máy tính khi không làm bài
+  $("#calcFab").style.display = "none";
+  $("#casioCalc").classList.remove("active");
+
   const user = getUser();
   if (!user) {
     app.innerHTML = `<section class="view"><div class="empty"><div class="big">🔒</div>Vui lòng đăng nhập để xem kết quả.</div></section>`;
@@ -2258,6 +2458,10 @@ function openFormResponses(form) {
    ADMIN
 ============================================================ */
 function renderAdmin() {
+  // Ẩn máy tính
+  $("#calcFab").style.display = "none";
+  $("#casioCalc").classList.remove("active");
+
   if (!isAdmin()) {
     app.innerHTML = `<section class="view"><div class="empty"><div class="big">🔒</div>Chỉ admin mới truy cập được.</div></section>`;
     return;
@@ -2367,7 +2571,14 @@ function renderAdmin() {
 ============================================================ */
 document.body.addEventListener("click", e => {
   const navBtn = e.target.closest("[data-nav]");
-  if (navBtn) return navigate(navBtn.dataset.nav);
+  if (navBtn) {
+    if (navBtn.dataset.nav === "create") $("#calcFab").style.display = "none";
+    if (navBtn.dataset.nav === "take") $("#calcFab").style.display = "none";
+    if (navBtn.dataset.nav === "results") $("#calcFab").style.display = "none";
+    if (navBtn.dataset.nav === "admin") $("#calcFab").style.display = "none";
+    if (navBtn.dataset.nav === "home") $("#calcFab").style.display = "none";
+    return navigate(navBtn.dataset.nav);
+  }
 
   const goBtn = e.target.closest("[data-go]");
   if (goBtn) return navigate(goBtn.dataset.go);
@@ -2396,6 +2607,92 @@ devBadge.addEventListener("keydown", e => {
 });
 
 /* ============================================================
+   CASIO CALCULATOR LOGIC
+============================================================ */
+const calcFab = $("#calcFab");
+const casioCalc = $("#casioCalc");
+const calcExpr = $("#calcExpr");
+const calcResult = $("#calcResult");
+const calcClose = $("#calcClose");
+const calcHeader = $("#calcDragHeader");
+
+let currentExpr = "";
+
+calcFab.addEventListener("click", () => {
+  casioCalc.classList.toggle("active");
+});
+
+calcClose.addEventListener("click", () => {
+  casioCalc.classList.remove("active");
+});
+
+// Xử lý nút bấm máy tính
+$$(".calc-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const val = btn.dataset.val;
+    if (val === "AC") {
+      currentExpr = "";
+      calcExpr.textContent = "";
+      calcResult.textContent = "0";
+    } else if (val === "DEL") {
+      currentExpr = currentExpr.slice(0, -1);
+      calcExpr.textContent = currentExpr;
+    } else if (val === "=") {
+      try {
+        let evalStr = currentExpr
+          .replace(/×/g, "*").replace(/÷/g, "/")
+          .replace(/sin\(/g, "Math.sin(").replace(/cos\(/g, "Math.cos(").replace(/tan\(/g, "Math.tan(")
+          .replace(/log\(/g, "Math.log10(").replace(/ln\(/g, "Math.log(")
+          .replace(/sqrt\(/g, "Math.sqrt(").replace(/pi/g, "Math.PI").replace(/e/g, "Math.E")
+          .replace(/\^2/g, "**2").replace(/\^/g, "**");
+        
+        // Bảo mật cơ bản: Chỉ cho phép các ký tự toán học
+        if (/[^0-9+\-*/().^%\sMathsincotalgqrePI]/.test(evalStr)) {
+          throw new Error("Invalid character");
+        }
+        
+        // Tính toán
+        const res = new Function('return ' + evalStr)();
+        calcResult.textContent = res;
+      } catch (err) {
+        calcResult.textContent = "Math ERROR";
+      }
+    } else if (val === "SHIFT" || val === "ALPHA") {
+      // Bỏ qua hoặc xử lý phím chức năng
+    } else {
+      currentExpr += val;
+      calcExpr.textContent = currentExpr;
+    }
+  });
+});
+
+// Kéo thả máy tính
+let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+
+calcHeader.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  dragOffsetX = e.clientX - casioCalc.getBoundingClientRect().left;
+  dragOffsetY = e.clientY - casioCalc.getBoundingClientRect().top;
+  // Đặt lại bottom/right để dùng left/top
+  const rect = casioCalc.getBoundingClientRect();
+  casioCalc.style.bottom = "auto";
+  casioCalc.style.right = "auto";
+  casioCalc.style.left = rect.left + "px";
+  casioCalc.style.top = rect.top + "px";
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (isDragging) {
+    casioCalc.style.left = (e.clientX - dragOffsetX) + "px";
+    casioCalc.style.top = (e.clientY - dragOffsetY) + "px";
+  }
+});
+
+document.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+/* ============================================================
    BOOT
 ============================================================ */
 loadDB();
@@ -2403,6 +2700,8 @@ resizeCanvas();
 drawDots();
 Security.deterSourceView();
 render();
+// Ẩn máy tính lúc mới load
+$("#calcFab").style.display = "none";
 </script>
 </body>
 </html>
