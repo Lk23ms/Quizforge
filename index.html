@@ -699,22 +699,26 @@
     width: 60px; height: 60px; border-radius: 50%;
     background: linear-gradient(135deg, #2d2d2d, #444);
     color: #fff; font-size: 24px;
-    display: grid; place-items: center;
+    display: none; /* Mặc định ẩn */
+    place-items: center;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    cursor: pointer; z-index: 900;
+    cursor: pointer; z-index: 9999;
     transition: transform .3s var(--ease), box-shadow .3s;
     border: 2px solid #555;
+  }
+  body.doing-test .calc-fab {
+    display: grid; /* Chỉ hiện khi đang làm bài */
   }
   .calc-fab:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
   
   #casioCalc {
     position: fixed;
-    bottom: 30px; right: 100px;
+    bottom: 100px; right: 30px;
     width: 320px; height: 520px;
     background: #1a1a1a;
     border-radius: 15px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-    z-index: 999;
+    z-index: 9999;
     display: none;
     flex-direction: column;
     resize: both; overflow: hidden;
@@ -1203,6 +1207,7 @@ function navigate(view, params = {}) {
 }
 function render() {
   renderNav();
+  document.body.classList.remove("doing-test");
   switch (currentView) {
     case "home": renderHome(); break;
     case "create": renderCreate(); break;
@@ -2138,7 +2143,7 @@ function renderTestRunner() {
   `;
 
   // Hiển thị nút máy tính khi làm bài
-  $("#calcFab").style.display = "grid";
+  document.body.classList.add("doing-test");
 
   $("#testForm").addEventListener("submit", e => {
     e.preventDefault();
@@ -2272,8 +2277,8 @@ function submitTest() {
    RESULTS
 ============================================================ */
 function renderResults() {
-  // Ẩn nút máy tính khi không làm bài
-  $("#calcFab").style.display = "none";
+  // Ẩn máy tính
+  document.body.classList.remove("doing-test");
   $("#casioCalc").classList.remove("active");
 
   const user = getUser();
@@ -2459,7 +2464,7 @@ function openFormResponses(form) {
 ============================================================ */
 function renderAdmin() {
   // Ẩn máy tính
-  $("#calcFab").style.display = "none";
+  document.body.classList.remove("doing-test");
   $("#casioCalc").classList.remove("active");
 
   if (!isAdmin()) {
@@ -2572,11 +2577,6 @@ function renderAdmin() {
 document.body.addEventListener("click", e => {
   const navBtn = e.target.closest("[data-nav]");
   if (navBtn) {
-    if (navBtn.dataset.nav === "create") $("#calcFab").style.display = "none";
-    if (navBtn.dataset.nav === "take") $("#calcFab").style.display = "none";
-    if (navBtn.dataset.nav === "results") $("#calcFab").style.display = "none";
-    if (navBtn.dataset.nav === "admin") $("#calcFab").style.display = "none";
-    if (navBtn.dataset.nav === "home") $("#calcFab").style.display = "none";
     return navigate(navBtn.dataset.nav);
   }
 
@@ -2700,8 +2700,6 @@ resizeCanvas();
 drawDots();
 Security.deterSourceView();
 render();
-// Ẩn máy tính lúc mới load
-$("#calcFab").style.display = "none";
 </script>
 </body>
 </html>
